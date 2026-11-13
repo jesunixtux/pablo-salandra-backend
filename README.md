@@ -76,6 +76,6 @@ borrador, `isDraft` debe ser `true` y al menos uno de `content`, `activity`,
 
 ## Límite de esta versión
 
-No incluye autenticación ni persistencia. Los filtros por correo son criterios
-de búsqueda, no controles de acceso. La siguiente etapa conectará JPA y MySQL
-cuando se configure el acceso desde el equipo a XAMPP en Parallels.
+No incluye autenticación. Los filtros por correo son criterios de búsqueda,
+no controles de acceso. Los datos se guardan en MySQL local (`bitacora`); para
+iniciar la API, primero levanta el entorno con `MYSQL-Local/start-local.sh`.

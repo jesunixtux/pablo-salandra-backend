@@ -1,58 +1,61 @@
 package cl.duoc.pablo_salandra_backend.notebook;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class NotebookService {
-    private final ConcurrentHashMap<Long, Notebook> notebooks = new ConcurrentHashMap<>();
-    private final AtomicLong nextId = new AtomicLong(1);
+    private final NotebookRepository notebooks;
+
+    public NotebookService(NotebookRepository notebooks) {
+        this.notebooks = notebooks;
+    }
 
     public List<Notebook> findAll() {
-        return notebooks.values().stream()
-            .sorted(Comparator.comparingLong(Notebook::createdAt).reversed())
-            .toList();
+        return notebooks.findAllByOrderByCreatedAtDesc().stream().map(this::toDto).toList();
     }
 
     public Notebook findById(long id) {
-        Notebook notebook = notebooks.get(id);
-        if (notebook == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        return notebook;
+        return toDto(notebooks.findById(id).orElseThrow(this::notFound));
     }
 
     public Notebook create(NotebookInput input) {
-        long id = nextId.getAndIncrement();
-        Notebook notebook = from(id, input, System.currentTimeMillis());
-        notebooks.put(id, notebook);
-        return notebook;
+        return toDto(notebooks.save(from(input, System.currentTimeMillis())));
     }
 
     public Notebook update(long id, NotebookInput input) {
-        Notebook existing = findById(id);
-        Notebook updated = from(id, input, existing.createdAt());
-        notebooks.put(id, updated);
-        return updated;
+        NotebookEntity existing = notebooks.findById(id).orElseThrow(this::notFound);
+        existing.replace(value(input.title()), value(input.purpose()), value(input.instructions()),
+            value(input.questions()), email(input.teacherEmail()), value(input.teacherName()));
+        return toDto(notebooks.save(existing));
     }
 
     public void delete(long id) {
-        if (notebooks.remove(id) == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        notebooks.delete(notebooks.findById(id).orElseThrow(this::notFound));
     }
 
-    private Notebook from(long id, NotebookInput input, long createdAt) {
-        return new Notebook(
-            id,
-            input.title().trim(),
-            input.purpose().trim(),
-            input.instructions().trim(),
-            input.questions() == null ? "" : input.questions().trim(),
-            input.teacherEmail().trim().toLowerCase(),
-            input.teacherName().trim(),
-            createdAt
-        );
+    private NotebookEntity from(NotebookInput input, long createdAt) {
+        return new NotebookEntity(value(input.title()), value(input.purpose()), value(input.instructions()),
+            value(input.questions()), email(input.teacherEmail()), value(input.teacherName()), createdAt);
+    }
+
+    private Notebook toDto(NotebookEntity notebook) {
+        return new Notebook(notebook.getId(), notebook.getTitle(), notebook.getPurpose(),
+            notebook.getInstructions(), notebook.getQuestions(), notebook.getTeacherEmail(),
+            notebook.getTeacherName(), notebook.getCreatedAt());
+    }
+
+    private String value(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private String email(String value) {
+        return value.trim().toLowerCase();
+    }
+
+    private ResponseStatusException notFound() {
+        return new ResponseStatusException(HttpStatus.NOT_FOUND);
     }
 }

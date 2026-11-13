@@ -1,65 +1,61 @@
 package cl.duoc.pablo_salandra_backend.studententry;
 
-import java.util.Comparator;
-import java.util.List;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.ResolverStyle;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import cl.duoc.pablo_salandra_backend.notebook.Notebook;
-import cl.duoc.pablo_salandra_backend.notebook.NotebookService;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import cl.duoc.pablo_salandra_backend.notebook.NotebookEntity;
+import cl.duoc.pablo_salandra_backend.notebook.NotebookRepository;
 
 @Service
 public class StudentEntryService {
-    private final ConcurrentHashMap<Long, StudentEntry> entries = new ConcurrentHashMap<>();
-    private final AtomicLong nextId = new AtomicLong(1);
-    private final NotebookService notebooks;
     private static final DateTimeFormatter CLASS_DATE = DateTimeFormatter.ofPattern("dd/MM/uuuu")
         .withResolverStyle(ResolverStyle.STRICT);
+    private final StudentEntryRepository entries;
+    private final NotebookRepository notebooks;
 
-    public StudentEntryService(NotebookService notebooks) {
+    public StudentEntryService(StudentEntryRepository entries, NotebookRepository notebooks) {
+        this.entries = entries;
         this.notebooks = notebooks;
     }
 
     public List<StudentEntry> findAll(String studentEmail, String teacherEmail) {
-        return entries.values().stream()
-            .filter(entry -> studentEmail == null || entry.studentEmail().equalsIgnoreCase(studentEmail))
-            .filter(entry -> teacherEmail == null || entry.teacherEmail().equalsIgnoreCase(teacherEmail))
-            .sorted(Comparator.comparingLong(StudentEntry::createdAt).reversed())
+        return entries.findAll().stream()
+            .filter(entry -> studentEmail == null || entry.getStudentEmail().equalsIgnoreCase(studentEmail))
+            .filter(entry -> teacherEmail == null || entry.getTeacherEmail().equalsIgnoreCase(teacherEmail))
+            .sorted((left, right) -> Long.compare(right.getCreatedAt(), left.getCreatedAt()))
+            .map(this::toDto)
             .toList();
     }
 
     public StudentEntry findById(long id) {
-        StudentEntry entry = entries.get(id);
-        if (entry == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-        return entry;
+        return toDto(entries.findById(id).orElseThrow(this::notFound));
     }
 
     public StudentEntry create(StudentEntryInput input) {
-        long id = nextId.getAndIncrement();
-        StudentEntry entry = from(id, input, System.currentTimeMillis());
-        entries.put(id, entry);
-        return entry;
+        return toDto(entries.save(from(input, System.currentTimeMillis())));
     }
 
     public StudentEntry update(long id, StudentEntryInput input) {
-        StudentEntry existing = findById(id);
-        StudentEntry updated = from(id, input, existing.createdAt());
-        entries.put(id, updated);
-        return updated;
+        StudentEntryEntity existing = entries.findById(id).orElseThrow(this::notFound);
+        StudentEntryEntity updated = from(input, existing.getCreatedAt());
+        existing.replace(updated.getNotebookId(), updated.getNotebookTitle(), updated.getTeacherEmail(),
+            updated.getStudentEmail(), updated.getStudentName(), updated.getClassDate(),
+            updated.getContent(), updated.getActivity(), updated.getLearning(), updated.getDoubts(),
+            updated.isDraft());
+        return toDto(entries.save(existing));
     }
 
     public void delete(long id) {
-        if (entries.remove(id) == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        entries.delete(entries.findById(id).orElseThrow(this::notFound));
     }
 
-    private StudentEntry from(long id, StudentEntryInput input, long createdAt) {
+    private StudentEntryEntity from(StudentEntryInput input, long createdAt) {
         if (blank(input.studentEmail()) || blank(input.studentName())) badRequest();
-        Notebook notebook = notebooks.findById(input.notebookId());
+        NotebookEntity notebook = notebooks.findById(input.notebookId()).orElseThrow(this::notFound);
         String classDate = value(input.classDate());
         String content = value(input.content());
         String activity = value(input.activity());
@@ -75,25 +71,24 @@ public class StudentEntryService {
                 badRequest();
             }
         }
-        return new StudentEntry(
-            id,
-            input.notebookId(),
-            notebook.title(),
-            notebook.teacherEmail(),
-            input.studentEmail().trim().toLowerCase(),
-            input.studentName().trim(),
-            classDate,
-            content,
-            activity,
-            learning,
-            doubts,
-            input.isDraft(),
-            createdAt
-        );
+        return new StudentEntryEntity(notebook.getId(), notebook.getTitle(), notebook.getTeacherEmail(),
+            email(input.studentEmail()), value(input.studentName()), classDate, content, activity,
+            learning, doubts, input.isDraft(), createdAt);
+    }
+
+    private StudentEntry toDto(StudentEntryEntity entry) {
+        return new StudentEntry(entry.getId(), entry.getNotebookId(), entry.getNotebookTitle(),
+            entry.getTeacherEmail(), entry.getStudentEmail(), entry.getStudentName(), entry.getClassDate(),
+            entry.getContent(), entry.getActivity(), entry.getLearning(), entry.getDoubts(),
+            entry.isDraft(), entry.getCreatedAt());
     }
 
     private String value(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private String email(String value) {
+        return value.trim().toLowerCase();
     }
 
     private boolean blank(String value) {
@@ -102,5 +97,9 @@ public class StudentEntryService {
 
     private void badRequest() {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
+
+    private ResponseStatusException notFound() {
+        return new ResponseStatusException(HttpStatus.NOT_FOUND);
     }
 }
