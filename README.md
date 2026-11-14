@@ -1,20 +1,30 @@
 # Pablo Salandra Backend
 
-Primera versión de la API REST para bitácoras docentes y registros de clase.
-Por ahora los datos se guardan en memoria y se pierden al reiniciar el servidor.
+API REST para bitácoras docentes y registros de clase. Guarda los datos en la
+base MySQL local `bitacora`.
 
 ## Requisitos y ejecución
 
 - JDK 21
 - Gradle Wrapper incluido
 
-Desde esta carpeta:
+Desde esta carpeta, inicia MySQL y luego Spring Boot:
 
 ```bash
+./MYSQL-Local/start-mysql.sh
 ./gradlew bootRun
 ```
 
-La API queda disponible en `http://localhost:8080`.
+La API queda disponible en `http://localhost:8080`. En el emulador Android,
+`10.0.2.2:8080` dirige al servidor del Mac. Esta API es la que usa MySQL;
+el directorio `backend/` dentro del repositorio Android contiene otro servidor
+con H2. Inicia solo uno de los dos en el puerto 8080.
+
+La URL de MySQL, el usuario y la contraseña se cambian en
+`src/main/resources/application.properties`. La configuración actual usa
+`root` sin contraseña, tal como el entorno local. La API escucha solo en
+`127.0.0.1`; para usar un dispositivo físico se debe ajustar esa dirección y
+la URL del cliente Android.
 
 ## Endpoints
 
@@ -37,7 +47,9 @@ Cuerpo para crear o reemplazar:
   "instructions": "Describe la actividad de la clase",
   "questions": "¿Qué aprendiste?",
   "teacherEmail": "docente@example.com",
-  "teacherName": "Docente de prueba"
+  "teacherName": "Docente de prueba",
+  "course": "1° Medio A",
+  "assignedStudentEmails": "alumno@example.com"
 }
 ```
 
@@ -65,7 +77,9 @@ Cuerpo para crear o reemplazar:
   "activity": "Resolvimos ejercicios",
   "learning": "Aprendí a...",
   "doubts": "",
-  "isDraft": false
+  "isDraft": false,
+  "isReviewed": false,
+  "teacherFeedback": ""
 }
 ```
 
@@ -77,5 +91,7 @@ borrador, `isDraft` debe ser `true` y al menos uno de `content`, `activity`,
 ## Límite de esta versión
 
 No incluye autenticación. Los filtros por correo son criterios de búsqueda,
-no controles de acceso. Los datos se guardan en MySQL local (`bitacora`); para
-iniciar la API, primero levanta el entorno con `MYSQL-Local/start-local.sh`.
+no controles de acceso. La aplicación Android usa esta API para publicar y
+asignar bitácoras, crear y editar registros, y registrar revisiones. Room
+conserva una copia local para mostrar los datos ya sincronizados cuando el
+servidor no está disponible; las operaciones de escritura requieren conexión.

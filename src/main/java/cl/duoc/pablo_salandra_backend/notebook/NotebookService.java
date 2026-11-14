@@ -28,7 +28,8 @@ public class NotebookService {
     public Notebook update(long id, NotebookInput input) {
         NotebookEntity existing = notebooks.findById(id).orElseThrow(this::notFound);
         existing.replace(value(input.title()), value(input.purpose()), value(input.instructions()),
-            value(input.questions()), email(input.teacherEmail()), value(input.teacherName()));
+            value(input.questions()), email(input.teacherEmail()), value(input.teacherName()),
+            course(input.course()), value(input.assignedStudentEmails()));
         return toDto(notebooks.save(existing));
     }
 
@@ -38,13 +39,15 @@ public class NotebookService {
 
     private NotebookEntity from(NotebookInput input, long createdAt) {
         return new NotebookEntity(value(input.title()), value(input.purpose()), value(input.instructions()),
-            value(input.questions()), email(input.teacherEmail()), value(input.teacherName()), createdAt);
+            value(input.questions()), email(input.teacherEmail()), value(input.teacherName()), createdAt,
+            course(input.course()), value(input.assignedStudentEmails()));
     }
 
     private Notebook toDto(NotebookEntity notebook) {
         return new Notebook(notebook.getId(), notebook.getTitle(), notebook.getPurpose(),
             notebook.getInstructions(), notebook.getQuestions(), notebook.getTeacherEmail(),
-            notebook.getTeacherName(), notebook.getCreatedAt());
+            notebook.getTeacherName(), notebook.getCreatedAt(), course(notebook.getCourse()),
+            value(notebook.getAssignedStudentEmails()));
     }
 
     private String value(String value) {
@@ -53,6 +56,10 @@ public class NotebookService {
 
     private String email(String value) {
         return value.trim().toLowerCase();
+    }
+
+    private String course(String value) {
+        return value == null || value.isBlank() ? "General" : value.trim();
     }
 
     private ResponseStatusException notFound() {

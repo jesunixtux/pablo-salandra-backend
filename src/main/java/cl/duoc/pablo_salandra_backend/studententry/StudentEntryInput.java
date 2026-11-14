@@ -13,5 +13,7 @@ public record StudentEntryInput(
     @Size(max = 10000) String activity,
     @Size(max = 10000) String learning,
     @Size(max = 10000) String doubts,
-    boolean isDraft
+    boolean isDraft,
+    boolean isReviewed,
+    @Size(max = 10000) String teacherFeedback
 ) {}

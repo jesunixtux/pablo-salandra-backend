@@ -8,5 +8,7 @@ public record Notebook(
     String questions,
     String teacherEmail,
     String teacherName,
-    long createdAt
+    long createdAt,
+    String course,
+    String assignedStudentEmails
 ) {}

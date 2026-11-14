@@ -45,7 +45,7 @@ public class StudentEntryService {
         existing.replace(updated.getNotebookId(), updated.getNotebookTitle(), updated.getTeacherEmail(),
             updated.getStudentEmail(), updated.getStudentName(), updated.getClassDate(),
             updated.getContent(), updated.getActivity(), updated.getLearning(), updated.getDoubts(),
-            updated.isDraft());
+            updated.isDraft(), updated.isReviewed(), updated.getTeacherFeedback());
         return toDto(entries.save(existing));
     }
 
@@ -73,14 +73,15 @@ public class StudentEntryService {
         }
         return new StudentEntryEntity(notebook.getId(), notebook.getTitle(), notebook.getTeacherEmail(),
             email(input.studentEmail()), value(input.studentName()), classDate, content, activity,
-            learning, doubts, input.isDraft(), createdAt);
+            learning, doubts, input.isDraft(), createdAt,
+            input.isReviewed(), value(input.teacherFeedback()));
     }
 
     private StudentEntry toDto(StudentEntryEntity entry) {
         return new StudentEntry(entry.getId(), entry.getNotebookId(), entry.getNotebookTitle(),
             entry.getTeacherEmail(), entry.getStudentEmail(), entry.getStudentName(), entry.getClassDate(),
             entry.getContent(), entry.getActivity(), entry.getLearning(), entry.getDoubts(),
-            entry.isDraft(), entry.getCreatedAt());
+            entry.isDraft(), entry.getCreatedAt(), entry.isReviewed(), entry.getTeacherFeedback());
     }
 
     private String value(String value) {

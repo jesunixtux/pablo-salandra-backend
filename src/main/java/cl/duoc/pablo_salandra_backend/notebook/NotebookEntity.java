@@ -23,11 +23,14 @@ public class NotebookEntity {
     private String teacherEmail;
     private String teacherName;
     private long createdAt;
+    private String course = "General";
+    @Column(columnDefinition = "TEXT")
+    private String assignedStudentEmails = "";
 
     protected NotebookEntity() {}
 
     public NotebookEntity(String title, String purpose, String instructions, String questions,
-            String teacherEmail, String teacherName, long createdAt) {
+            String teacherEmail, String teacherName, long createdAt, String course, String assignedStudentEmails) {
         this.title = title;
         this.purpose = purpose;
         this.instructions = instructions;
@@ -35,6 +38,8 @@ public class NotebookEntity {
         this.teacherEmail = teacherEmail;
         this.teacherName = teacherName;
         this.createdAt = createdAt;
+        this.course = course;
+        this.assignedStudentEmails = assignedStudentEmails;
     }
 
     public Long getId() { return id; }
@@ -45,14 +50,18 @@ public class NotebookEntity {
     public String getTeacherEmail() { return teacherEmail; }
     public String getTeacherName() { return teacherName; }
     public long getCreatedAt() { return createdAt; }
+    public String getCourse() { return course; }
+    public String getAssignedStudentEmails() { return assignedStudentEmails; }
 
     public void replace(String title, String purpose, String instructions, String questions,
-            String teacherEmail, String teacherName) {
+            String teacherEmail, String teacherName, String course, String assignedStudentEmails) {
         this.title = title;
         this.purpose = purpose;
         this.instructions = instructions;
         this.questions = questions;
         this.teacherEmail = teacherEmail;
         this.teacherName = teacherName;
+        this.course = course;
+        this.assignedStudentEmails = assignedStudentEmails;
     }
 }

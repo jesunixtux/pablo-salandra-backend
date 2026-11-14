@@ -29,14 +29,18 @@ public class StudentEntryEntity {
     private String doubts;
     private boolean isDraft;
     private long createdAt;
+    private boolean isReviewed;
+    @Column(columnDefinition = "TEXT")
+    private String teacherFeedback = "";
 
     protected StudentEntryEntity() {}
 
     public StudentEntryEntity(Long notebookId, String notebookTitle, String teacherEmail,
             String studentEmail, String studentName, String classDate, String content,
-            String activity, String learning, String doubts, boolean isDraft, long createdAt) {
+            String activity, String learning, String doubts, boolean isDraft, long createdAt,
+            boolean isReviewed, String teacherFeedback) {
         replace(notebookId, notebookTitle, teacherEmail, studentEmail, studentName, classDate,
-            content, activity, learning, doubts, isDraft);
+            content, activity, learning, doubts, isDraft, isReviewed, teacherFeedback);
         this.createdAt = createdAt;
     }
 
@@ -53,10 +57,13 @@ public class StudentEntryEntity {
     public String getDoubts() { return doubts; }
     public boolean isDraft() { return isDraft; }
     public long getCreatedAt() { return createdAt; }
+    public boolean isReviewed() { return isReviewed; }
+    public String getTeacherFeedback() { return teacherFeedback; }
 
     public void replace(Long notebookId, String notebookTitle, String teacherEmail,
             String studentEmail, String studentName, String classDate, String content,
-            String activity, String learning, String doubts, boolean isDraft) {
+            String activity, String learning, String doubts, boolean isDraft,
+            boolean isReviewed, String teacherFeedback) {
         this.notebookId = notebookId;
         this.notebookTitle = notebookTitle;
         this.teacherEmail = teacherEmail;
@@ -68,5 +75,7 @@ public class StudentEntryEntity {
         this.learning = learning;
         this.doubts = doubts;
         this.isDraft = isDraft;
+        this.isReviewed = isReviewed;
+        this.teacherFeedback = teacherFeedback;
     }
 }

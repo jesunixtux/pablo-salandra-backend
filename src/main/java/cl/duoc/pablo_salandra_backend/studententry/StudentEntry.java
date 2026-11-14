@@ -13,5 +13,7 @@ public record StudentEntry(
     String learning,
     String doubts,
     boolean isDraft,
-    long createdAt
+    long createdAt,
+    boolean isReviewed,
+    String teacherFeedback
 ) {}
