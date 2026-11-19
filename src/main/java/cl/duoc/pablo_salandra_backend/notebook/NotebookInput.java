@@ -9,8 +9,11 @@ public record NotebookInput(
     @NotBlank @Size(max = 10000) String purpose,
     @NotBlank @Size(max = 10000) String instructions,
     @Size(max = 10000) String questions,
-    @NotBlank @Email @Size(max = 255) String teacherEmail,
-    @NotBlank @Size(max = 255) String teacherName,
-    @Size(max = 100) String course,
-    @Size(max = 10000) String assignedStudentEmails
+    @Email @Size(max = 255) String teacherEmail,
+    @Size(max = 255) String teacherName,
+    @NotBlank @Size(max = 100) String course,
+    @Size(max = 10000) String assignedStudentEmails,
+    @NotBlank String subject,
+    int month,
+    int year
 ) {}

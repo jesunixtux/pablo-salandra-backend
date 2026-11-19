@@ -32,6 +32,12 @@ public class StudentEntryEntity {
     private boolean isReviewed;
     @Column(columnDefinition = "TEXT")
     private String teacherFeedback = "";
+    private Long studentId;
+    private Long submittedAt;
+    private Long reviewedAt;
+    private Long reviewerId;
+    private String reviewerEmail;
+    private long updatedAt;
 
     protected StudentEntryEntity() {}
 
@@ -59,6 +65,24 @@ public class StudentEntryEntity {
     public long getCreatedAt() { return createdAt; }
     public boolean isReviewed() { return isReviewed; }
     public String getTeacherFeedback() { return teacherFeedback; }
+    public Long getStudentId() { return studentId; }
+    public Long getSubmittedAt() { return submittedAt; }
+    public Long getReviewedAt() { return reviewedAt; }
+    public Long getReviewerId() { return reviewerId; }
+    public String getReviewerEmail() { return reviewerEmail; }
+    public long getUpdatedAt() { return updatedAt; }
+
+    public void assignStudent(Long studentId) { this.studentId = studentId; touch(); }
+    public void submit() { this.isDraft = false; this.submittedAt = System.currentTimeMillis(); touch(); }
+    public void review(Long reviewerId, String reviewerEmail, String feedback) {
+        this.isReviewed = true;
+        this.reviewerId = reviewerId;
+        this.reviewerEmail = reviewerEmail;
+        this.teacherFeedback = feedback;
+        this.reviewedAt = System.currentTimeMillis();
+        touch();
+    }
+    public void touch() { updatedAt = Math.max(System.currentTimeMillis(), updatedAt + 1); }
 
     public void replace(Long notebookId, String notebookTitle, String teacherEmail,
             String studentEmail, String studentName, String classDate, String content,
@@ -77,5 +101,6 @@ public class StudentEntryEntity {
         this.isDraft = isDraft;
         this.isReviewed = isReviewed;
         this.teacherFeedback = teacherFeedback;
+        touch();
     }
 }

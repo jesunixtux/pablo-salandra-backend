@@ -1,5 +1,9 @@
 package cl.duoc.pablo_salandra_backend.studententry;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+import cl.duoc.pablo_salandra_backend.evidence.EvidenceDto;
+
 public record StudentEntry(
     Long id,
     long notebookId,
@@ -12,8 +16,13 @@ public record StudentEntry(
     String activity,
     String learning,
     String doubts,
-    boolean isDraft,
+    @JsonProperty("isDraft") boolean isDraft,
     long createdAt,
-    boolean isReviewed,
-    String teacherFeedback
+    @JsonProperty("isReviewed") boolean isReviewed,
+    String teacherFeedback,
+    Long submittedAt,
+    Long reviewedAt,
+    String reviewerEmail,
+    List<EvidenceDto> evidences,
+    long updatedAt
 ) {}

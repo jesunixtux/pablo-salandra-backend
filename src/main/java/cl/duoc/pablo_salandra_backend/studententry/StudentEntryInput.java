@@ -1,5 +1,6 @@
 package cl.duoc.pablo_salandra_backend.studententry;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
@@ -13,7 +14,7 @@ public record StudentEntryInput(
     @Size(max = 10000) String activity,
     @Size(max = 10000) String learning,
     @Size(max = 10000) String doubts,
-    boolean isDraft,
-    boolean isReviewed,
+    @JsonProperty("isDraft") boolean isDraft,
+    @JsonProperty("isReviewed") Boolean isReviewed,
     @Size(max = 10000) String teacherFeedback
 ) {}

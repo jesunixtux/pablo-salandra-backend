@@ -10,5 +10,13 @@ public record Notebook(
     String teacherName,
     long createdAt,
     String course,
-    String assignedStudentEmails
+    String assignedStudentEmails,
+    String subject,
+    int month,
+    int year,
+    Long publishedAt,
+    boolean isClosed,
+    Long closedAt,
+    boolean remindersEnabled,
+    long updatedAt
 ) {}

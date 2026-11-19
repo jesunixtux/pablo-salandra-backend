@@ -1,97 +1,39 @@
-# Pablo Salandra Backend
+# Bitácora DSY1105 — backend
 
-API REST para bitácoras docentes y registros de clase. Guarda los datos en la
-base MySQL local `bitacora`.
+API Spring Boot 4.1.2, Java 21 y MySQL para bitácoras mensuales de 5° a 8° Básico. La API escucha en `127.0.0.1:8090` y usa la base `bitacora` en `127.0.0.1:3306` de forma predeterminada. La aplicación Android aún usa autenticación y almacenamiento locales; su sincronización remota está desactivada.
 
-## Requisitos y ejecución
-
-- JDK 21
-- Gradle Wrapper incluido
-
-Desde esta carpeta, inicia MySQL y luego Spring Boot:
+## Iniciar
 
 ```bash
 ./MYSQL-Local/start-mysql.sh
 ./gradlew bootRun
 ```
 
-La API queda disponible en `http://localhost:8080`. En el emulador Android,
-`10.0.2.2:8080` dirige al servidor del Mac. Esta API es la que usa MySQL;
-el directorio `backend/` dentro del repositorio Android contiene otro servidor
-con H2. Inicia solo uno de los dos en el puerto 8080.
+Flyway crea o amplía el esquema al arrancar. `spring.jpa.hibernate.ddl-auto=validate` comprueba las entidades. Antes de actualizar una base existente, haz un respaldo. Las migraciones se describen en [BACKEND-MIGRACION-DSY1105.md](BACKEND-MIGRACION-DSY1105.md).
 
-La URL de MySQL, el usuario y la contraseña se cambian en
-`src/main/resources/application.properties`. La configuración actual usa
-`root` sin contraseña, tal como el entorno local. La API escucha solo en
-`127.0.0.1`; para usar un dispositivo físico se debe ajustar esa dirección y
-la URL del cliente Android.
+Variables opcionales: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `SERVER_PORT`, `SERVER_ADDRESS` y `EVIDENCE_DIR`. Por defecto, `DB_USER=root` y `DB_PASSWORD` vacío se usan únicamente para este MySQL local de pruebas. Para otro entorno usa un usuario de aplicación y contraseña propia. Los archivos se guardan fuera del repositorio en `${user.home}/.local/share/pablo-salandra-backend/evidences`, salvo que configures `EVIDENCE_DIR`.
 
-## Endpoints
+El registro público crea solo estudiantes. Para cargar un docente ficticio con asignación de curso y asignatura, configura antes del arranque `BOOTSTRAP_TEACHER_EMAIL`, `BOOTSTRAP_TEACHER_PASSWORD`, `BOOTSTRAP_TEACHER_NAME`, `BOOTSTRAP_TEACHER_COURSE` y `BOOTSTRAP_TEACHER_SUBJECT`. La contraseña debe tener al menos 8 caracteres y se guarda con BCrypt; si la cuenta ya existe, el arranque solo agrega la asignación y no cambia su contraseña. No pongas estas variables en archivos versionados.
 
-### Bitácoras
+## API
 
-Base: `/api/notebooks`
+`POST /api/auth/register` recibe `name`, `email`, `password`, `course`. `POST /api/auth/login` recibe `email`, `password`. Ambos devuelven `token`, `expiresAt` y `user`. Envía `Authorization: Bearer <token>` para el resto de la API. `GET /api/auth/me` devuelve la identidad; `POST /api/auth/logout` revoca la sesión. Los tokens expiran en 12 horas.
 
-- `GET /api/notebooks`
-- `GET /api/notebooks/{id}`
-- `POST /api/notebooks`
-- `PUT /api/notebooks/{id}`
-- `DELETE /api/notebooks/{id}`
+| Recurso | Operaciones |
+| --- | --- |
+| `/api/notebooks` | `GET`, `POST`; `GET/PUT/DELETE /{id}`; `POST /{id}/publish`, `POST /{id}/close`; `PUT /{id}/reminders`; `GET /{id}/participation` |
+| `/api/student-entries` | `GET`, `POST`; `GET/PUT/DELETE /{id}`; `POST /{id}/submit`; `PUT /{id}/review` |
+| `/api/evidences` | `POST` multipart; `GET /{id}` |
 
-Cuerpo para crear o reemplazar:
+La creación de bitácoras y registros, y la subida de evidencias, requieren `Idempotency-Key` único por operación. Las modificaciones, publicación, cierre, recordatorios y revisión requieren `If-Match` con el valor `updatedAt` leído antes. Una versión obsoleta devuelve `412`; una clave reutilizada con otro contenido devuelve `409`. Consulta cuerpos, permisos y límites en [BACKEND-MIGRACION-DSY1105.md](BACKEND-MIGRACION-DSY1105.md).
 
-```json
-{
-  "title": "Octubre",
-  "purpose": "Reflexionar sobre lo aprendido",
-  "instructions": "Describe la actividad de la clase",
-  "questions": "¿Qué aprendiste?",
-  "teacherEmail": "docente@example.com",
-  "teacherName": "Docente de prueba",
-  "course": "1° Medio A",
-  "assignedStudentEmails": "alumno@example.com"
-}
+## Pruebas
+
+```bash
+./gradlew clean test
+./gradlew bootJar
 ```
 
-### Registros de clase
+Las pruebas usan H2 en modo MySQL por defecto. Para repetirlas en una base MySQL **de prueba independiente**, configura `TEST_DB_URL`, `TEST_DB_USER` y `TEST_DB_PASSWORD` y ejecuta `./gradlew clean test`. No apuntes `TEST_DB_URL` a `bitacora`: las pruebas insertan cuentas y datos ficticios.
 
-Base: `/api/student-entries`
-
-- `GET /api/student-entries`
-- `GET /api/student-entries?studentEmail=alumno@example.com`
-- `GET /api/student-entries?teacherEmail=docente@example.com`
-- `GET /api/student-entries/{id}`
-- `POST /api/student-entries`
-- `PUT /api/student-entries/{id}`
-- `DELETE /api/student-entries/{id}`
-
-Cuerpo para crear o reemplazar:
-
-```json
-{
-  "notebookId": 1,
-  "studentEmail": "alumno@example.com",
-  "studentName": "Estudiante de prueba",
-  "classDate": "12/11/2026",
-  "content": "Hoy aprendí...",
-  "activity": "Resolvimos ejercicios",
-  "learning": "Aprendí a...",
-  "doubts": "",
-  "isDraft": false,
-  "isReviewed": false,
-  "teacherFeedback": ""
-}
-```
-
-Los campos obligatorios y el formato de fecha se validan al recibir solicitudes.
-Una bitácora debe existir antes de crear un registro asociado. Para guardar un
-borrador, `isDraft` debe ser `true` y al menos uno de `content`, `activity`,
-`learning` o `doubts` debe tener contenido.
-
-## Límite de esta versión
-
-No incluye autenticación. Los filtros por correo son criterios de búsqueda,
-no controles de acceso. La aplicación Android usa esta API para publicar y
-asignar bitácoras, crear y editar registros, y registrar revisiones. Room
-conserva una copia local para mostrar los datos ya sincronizados cuando el
-servidor no está disponible; las operaciones de escritura requieren conexión.
+En el emulador Android, el Mac es `10.0.2.2` y la API está en el puerto `8090`. La app todavía tiene URL local `:8080` e integración remota desactivada; cambiarla y activar el cliente corresponde a la siguiente etapa. Para un teléfono físico en una red confiable, configura `SERVER_ADDRESS` con la interfaz del Mac y usa su IP local en Android. No expongas esta API HTTP con tokens Bearer a Internet.
