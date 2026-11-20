@@ -159,6 +159,8 @@ public class NotebookService {
 
     public boolean owns(NotebookEntity notebook, UserEntity teacher) {
         return "TEACHER".equals(teacher.getRole()) &&
+            assignments.existsByTeacherIdAndCourseAndSubject(
+                teacher.getId(), notebook.getCourse(), notebook.getSubject()) &&
             (Objects.equals(notebook.getTeacherId(), teacher.getId()) ||
                 (notebook.getTeacherId() == null &&
                     teacher.getEmail().equalsIgnoreCase(notebook.getTeacherEmail())));

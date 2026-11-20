@@ -81,7 +81,7 @@ public class StudentEntryService {
         if (replay != null) return findById(replay);
         NotebookEntity notebook = notebookService.accessibleForEntry(input.notebookId(), student);
         if (notebook.isClosed()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Notebook is closed");
-        validateContents(input, !input.isDraft());
+        validateContents(input, !input.isDraft(), notebook);
         StudentEntryEntity entry = new StudentEntryEntity(notebook.getId(), notebook.getTitle(),
             notebook.getTeacherEmail(), student.getEmail(), student.getName(), value(input.classDate()),
             value(input.content()), value(input.activity()), value(input.learning()), value(input.doubts()),
@@ -102,7 +102,7 @@ public class StudentEntryService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Notebook cannot change");
         NotebookEntity notebook = notebookService.accessibleForEntry(entry.getNotebookId(), student);
         if (notebook.isClosed()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Notebook is closed");
-        validateContents(input, !input.isDraft());
+        validateContents(input, !input.isDraft(), notebook);
         entry.replace(entry.getNotebookId(), notebook.getTitle(), notebook.getTeacherEmail(),
             student.getEmail(), student.getName(), value(input.classDate()), value(input.content()),
             value(input.activity()), value(input.learning()), value(input.doubts()), true, false, "");
@@ -119,7 +119,7 @@ public class StudentEntryService {
         if (notebook.isClosed()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Notebook is closed");
         validateContents(new StudentEntryInput(entry.getNotebookId(), entry.getNotebookTitle(),
             entry.getStudentEmail(), entry.getStudentName(), entry.getClassDate(), entry.getContent(),
-            entry.getActivity(), entry.getLearning(), entry.getDoubts(), false, false, ""), true);
+            entry.getActivity(), entry.getLearning(), entry.getDoubts(), false, false, ""), true, notebook);
         entry.submit();
         return toDto(entries.save(entry));
     }
@@ -128,7 +128,9 @@ public class StudentEntryService {
     public StudentEntry review(long id, String feedback, String ifMatch) {
         UserEntity teacher = current.require("TEACHER");
         StudentEntryEntity entry = entries.findLockedById(id).orElseThrow(this::notFound);
-        NotebookEntity notebook = notebooks.findById(entry.getNotebookId()).orElseThrow(this::notFound);
+        Long entryNotebookId = entry.getNotebookId();
+        if (entryNotebookId == null) throw notFound(); // fila legacy huérfana
+        NotebookEntity notebook = notebooks.findById(entryNotebookId).orElseThrow(this::notFound);
         if (!notebookService.owns(notebook, teacher)) throw notFound();
         requireVersion(entry, ifMatch);
         if (entry.isDraft()) throw new ResponseStatusException(HttpStatus.CONFLICT, "Draft cannot be reviewed");
@@ -169,24 +171,30 @@ public class StudentEntryService {
     private boolean visibleTo(StudentEntryEntity entry, UserEntity user) {
         if ("STUDENT".equals(user.getRole())) return owns(entry, user);
         if (!"TEACHER".equals(user.getRole()) || entry.isDraft()) return false;
-        return notebooks.findById(entry.getNotebookId())
+        Long notebookId = entry.getNotebookId();
+        if (notebookId == null) return false; // fila legacy huérfana: nunca visible
+        return notebooks.findById(notebookId)
             .map(notebook -> notebookService.owns(notebook, user)).orElse(false);
     }
 
     private boolean owns(StudentEntryEntity entry, UserEntity student) {
-        return Objects.equals(entry.getStudentId(), student.getId()) ||
-            (entry.getStudentId() == null && student.getEmail().equalsIgnoreCase(entry.getStudentEmail()));
+        // Sin fallback por correo: una cuenta registrada con un correo ajeno no puede
+        // apropiarse de filas legacy sin student_id (la identidad la fija el servidor).
+        return Objects.equals(entry.getStudentId(), student.getId());
     }
 
-    private void validateContents(StudentEntryInput input, boolean submitted) {
+    private void validateContents(StudentEntryInput input, boolean submitted, NotebookEntity notebook) {
         if (!submitted) return;
         if (blank(input.content()) || blank(input.activity()) || blank(input.learning()))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Required entry fields missing");
+        LocalDate date;
         try {
-            LocalDate.parse(value(input.classDate()), CLASS_DATE);
+            date = LocalDate.parse(value(input.classDate()), CLASS_DATE);
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid class date");
         }
+        if (date.getMonthValue() != notebook.getMonth() || date.getYear() != notebook.getYear())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Class date outside notebook period");
     }
 
     private void requireVersion(StudentEntryEntity entry, String ifMatch) {

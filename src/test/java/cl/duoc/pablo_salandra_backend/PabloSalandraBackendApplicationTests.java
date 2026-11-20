@@ -4,6 +4,8 @@ import cl.duoc.pablo_salandra_backend.auth.TeacherAssignmentEntity;
 import cl.duoc.pablo_salandra_backend.auth.TeacherAssignmentRepository;
 import cl.duoc.pablo_salandra_backend.auth.UserEntity;
 import cl.duoc.pablo_salandra_backend.auth.UserRepository;
+import cl.duoc.pablo_salandra_backend.studententry.StudentEntryEntity;
+import cl.duoc.pablo_salandra_backend.studententry.StudentEntryRepository;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,7 @@ class PabloSalandraBackendApplicationTests {
     @Autowired ObjectMapper json;
     @Autowired UserRepository users;
     @Autowired TeacherAssignmentRepository assignments;
+    @Autowired StudentEntryRepository studentEntries;
     @Autowired PasswordEncoder passwords;
 
     @Test
@@ -236,6 +239,112 @@ class PabloSalandraBackendApplicationTests {
             .header("Authorization", bearer(studentToken)).header("Idempotency-Key", entryKey)
             .contentType(MediaType.APPLICATION_JSON).content(entryInput(notebookId, true)))
             .andExpect(status().isCreated()).andReturn()).get("id").asLong());
+        assignments.deleteAll(assignments.findAll().stream()
+            .filter(assignment -> assignment.getTeacherId().equals(teacher.getId())).toList());
+        mvc.perform(get("/api/notebooks/" + notebookId).header("Authorization", bearer(teacherToken)))
+            .andExpect(status().isNotFound());
+        mvc.perform(put("/api/student-entries/" + entryId + "/review")
+            .header("Authorization", bearer(teacherToken))
+            .header("If-Match", reviewed.get("updatedAt").asText())
+            .contentType(MediaType.APPLICATION_JSON).content(payload(Map.of("feedback", "Sin permiso"))))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void periodValidationAndLegacyRowProtection() throws Exception {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+        String teacherEmail = "teacher-" + suffix + "@example.test";
+        String legacyEmail = "legacy-" + suffix + "@example.test";
+        UserEntity teacher = users.save(new UserEntity("Docente Ficticio", teacherEmail,
+            passwords.encode(PASSWORD), "TEACHER", null));
+        assignments.save(new TeacherAssignmentEntity(teacher.getId(), COURSE, SUBJECT));
+        String teacherToken = login(teacherEmail, PASSWORD);
+
+        // Filas legacy insertadas directamente: sin student_id y una huérfana sin notebook_id.
+        StudentEntryEntity legacyDraft = studentEntries.save(new StudentEntryEntity(
+            null, "Bitácora antigua", teacherEmail, legacyEmail, "Estudiante Antiguo",
+            "05/03/2024", "Contenido antiguo", "Actividad", "Aprendizaje", "", true,
+            System.currentTimeMillis(), false, ""));
+        StudentEntryEntity legacySubmitted = studentEntries.save(new StudentEntryEntity(
+            null, "Bitácora antigua", teacherEmail, legacyEmail, "Estudiante Antiguo",
+            "06/03/2024", "Contenido antiguo", "Actividad", "Aprendizaje", "", false,
+            System.currentTimeMillis(), false, ""));
+
+        // Una cuenta nueva registrada con el correo legacy NO hereda esas filas.
+        String claimerToken = register(legacyEmail, COURSE);
+        JsonNode listed = read(mvc.perform(get("/api/student-entries")
+            .header("Authorization", bearer(claimerToken)))
+            .andExpect(status().isOk()).andReturn());
+        for (JsonNode node : listed) {
+            assertNotEquals(legacyDraft.getId().longValue(), node.get("id").asLong());
+            assertNotEquals(legacySubmitted.getId().longValue(), node.get("id").asLong());
+        }
+        mvc.perform(get("/api/student-entries/" + legacyDraft.getId())
+            .header("Authorization", bearer(claimerToken))).andExpect(status().isNotFound());
+        mvc.perform(put("/api/student-entries/" + legacyDraft.getId())
+            .header("Authorization", bearer(claimerToken)).header("If-Match", "1")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(payload(Map.of("notebookId", 1, "classDate", "05/03/2024",
+                "content", "x", "activity", "y", "learning", "z", "isDraft", true))))
+            .andExpect(status().isNotFound());
+
+        // El docente lista sin error 500 aunque existan filas huérfanas (notebook_id NULL).
+        mvc.perform(get("/api/student-entries").header("Authorization", bearer(teacherToken)))
+            .andExpect(status().isOk());
+        mvc.perform(put("/api/student-entries/" + legacySubmitted.getId() + "/review")
+            .header("Authorization", bearer(teacherToken)).header("If-Match", "1")
+            .contentType(MediaType.APPLICATION_JSON).content(payload(Map.of("feedback", "ok"))))
+            .andExpect(status().isNotFound());
+
+        // La fecha del registro debe caer dentro del mes y año de la bitácora.
+        String studentEmail = "student-" + suffix + "@example.test";
+        String studentToken = register(studentEmail, COURSE);
+        JsonNode notebook = read(mvc.perform(post("/api/notebooks")
+            .header("Authorization", bearer(teacherToken)).header("Idempotency-Key", UUID.randomUUID())
+            .contentType(MediaType.APPLICATION_JSON).content(notebookInput()))
+            .andExpect(status().isCreated()).andReturn());
+        long notebookId = notebook.get("id").asLong();
+        mvc.perform(post("/api/notebooks/" + notebookId + "/publish")
+            .header("Authorization", bearer(teacherToken))
+            .header("If-Match", notebook.get("updatedAt").asText()))
+            .andExpect(status().isOk());
+        mvc.perform(post("/api/student-entries")
+            .header("Authorization", bearer(studentToken)).header("Idempotency-Key", UUID.randomUUID())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(payload(Map.of("notebookId", notebookId, "classDate", "12/12/2026",
+                "content", "Contenido", "activity", "Actividad", "learning", "Aprendizaje",
+                "isDraft", false))))
+            .andExpect(status().isBadRequest());
+        // Como borrador sí se acepta (la validación de periodo aplica al enviar).
+        JsonNode draft = read(mvc.perform(post("/api/student-entries")
+            .header("Authorization", bearer(studentToken)).header("Idempotency-Key", UUID.randomUUID())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(payload(Map.of("notebookId", notebookId, "classDate", "12/12/2026",
+                "content", "Contenido", "activity", "Actividad", "learning", "Aprendizaje",
+                "isDraft", true))))
+            .andExpect(status().isCreated()).andReturn());
+        // Enviar ese borrador con fecha fuera de periodo también se rechaza.
+        mvc.perform(post("/api/student-entries/" + draft.get("id").asLong() + "/submit")
+            .header("Authorization", bearer(studentToken))
+            .header("If-Match", draft.get("updatedAt").asText()))
+            .andExpect(status().isBadRequest());
+        mvc.perform(put("/api/student-entries/" + draft.get("id").asLong())
+            .header("Authorization", bearer(studentToken))
+            .header("If-Match", draft.get("updatedAt").asText())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(payload(Map.of("notebookId", notebookId, "classDate", "12/12/2026",
+                "content", "Contenido", "activity", "Actividad", "learning", "Aprendizaje",
+                "isDraft", false))))
+            .andExpect(status().isBadRequest());
+        // Con fecha dentro del periodo se envía correctamente.
+        mvc.perform(put("/api/student-entries/" + draft.get("id").asLong())
+            .header("Authorization", bearer(studentToken))
+            .header("If-Match", draft.get("updatedAt").asText())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(payload(Map.of("notebookId", notebookId, "classDate", "12/11/2026",
+                "content", "Contenido", "activity", "Actividad", "learning", "Aprendizaje",
+                "isDraft", false))))
+            .andExpect(status().isOk());
     }
 
     private String notebookInput() throws Exception {

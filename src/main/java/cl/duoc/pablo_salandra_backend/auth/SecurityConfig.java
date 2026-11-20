@@ -1,5 +1,6 @@
 package cl.duoc.pablo_salandra_backend.auth;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -26,6 +27,7 @@ public class SecurityConfig {
             .exceptionHandling(errors -> errors.authenticationEntryPoint(
                 (request, response, exception) -> response.sendError(401)))
             .authorizeHttpRequests(auth -> auth
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(new BearerTokenFilter(sessions, users),
