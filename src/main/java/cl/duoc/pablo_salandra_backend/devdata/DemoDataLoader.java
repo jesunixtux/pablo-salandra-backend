@@ -82,8 +82,19 @@ public class DemoDataLoader implements ApplicationRunner {
         UserEntity camila = user("Camila Demo", STUDENT_CAMILA, "STUDENT", "6° Básico A");
         UserEntity diego = user("Diego Demo", STUDENT_DIEGO, "STUDENT", "6° Básico A");
 
+        UserEntity languageTeacher = user("Docente Clara Demo", "docente.lenguaje.5b@demo.dsy1105.test", "TEACHER", null);
+        UserEntity historyTeacher = user("Docente Daniel Demo", "docente.historia.6b@demo.dsy1105.test", "TEACHER", null);
+        UserEntity englishTeacher = user("Docente Elena Demo", "docente.ingles.7a@demo.dsy1105.test", "TEACHER", null);
+        UserEntity eighthTeacher = user("Docente Fabio Demo", "docente.lenguaje.8a@demo.dsy1105.test", "TEACHER", null);
+
+        additionalStudents().forEach(seed -> user(seed.name(), seed.email(), "STUDENT", seed.course()));
+
         assignment(mathTeacher, "5° Básico A", "Matemática");
         assignment(scienceTeacher, "6° Básico A", "Ciencias Naturales");
+        assignment(languageTeacher, "5° Básico B", "Lenguaje y Comunicación");
+        assignment(historyTeacher, "6° Básico B", "Historia y Geografía");
+        assignment(englishTeacher, "7° Básico A", "Inglés");
+        assignment(eighthTeacher, "8° Básico A", "Lenguaje y Comunicación");
 
         NotebookEntity mathOpen = notebook(mathTeacher, "Matemática - Noviembre 2026",
             "5° Básico A", "Matemática", 11, 2026, STUDENT_ALBA + "," + STUDENT_BENJAMIN, false);
@@ -102,8 +113,35 @@ public class DemoDataLoader implements ApplicationRunner {
         fileEvidence(draft, alba, "PHOTO", "demo-foto.png", "image/png", "demo-photo.png", PHOTO);
         fileEvidence(reviewed, benjamin, "FILE", "demo-nota.txt", "text/plain", "demo-note.txt", NOTE);
         linkEvidence(submitted, camila, "https://example.test/dsy1105/evidencia-demo");
-        LOG.info("Datos ficticios DSY1105 listos: 2 docentes, 4 estudiantes, 3 bitácoras y 3 registros");
+        LOG.info("Datos ficticios DSY1105 listos: 6 docentes, 24 estudiantes, 3 bitácoras y 3 registros");
     }
+
+    private java.util.List<StudentSeed> additionalStudents() {
+        return java.util.List.of(
+            new StudentSeed("Elena Demo", "elena.5a@demo.dsy1105.test", "5° Básico A"),
+            new StudentSeed("Felipe Demo", "felipe.5a@demo.dsy1105.test", "5° Básico A"),
+            new StudentSeed("Gabriela Demo", "gabriela.5b@demo.dsy1105.test", "5° Básico B"),
+            new StudentSeed("Hugo Demo", "hugo.5b@demo.dsy1105.test", "5° Básico B"),
+            new StudentSeed("Inés Demo", "ines.5b@demo.dsy1105.test", "5° Básico B"),
+            new StudentSeed("Joaquín Demo", "joaquin.5b@demo.dsy1105.test", "5° Básico B"),
+            new StudentSeed("Karla Demo", "karla.6a@demo.dsy1105.test", "6° Básico A"),
+            new StudentSeed("Lucas Demo", "lucas.6a@demo.dsy1105.test", "6° Básico A"),
+            new StudentSeed("María Demo", "maria.6b@demo.dsy1105.test", "6° Básico B"),
+            new StudentSeed("Nicolás Demo", "nicolas.6b@demo.dsy1105.test", "6° Básico B"),
+            new StudentSeed("Olivia Demo", "olivia.6b@demo.dsy1105.test", "6° Básico B"),
+            new StudentSeed("Pedro Demo", "pedro.6b@demo.dsy1105.test", "6° Básico B"),
+            new StudentSeed("Renata Demo", "renata.7a@demo.dsy1105.test", "7° Básico A"),
+            new StudentSeed("Sebastián Demo", "sebastian.7a@demo.dsy1105.test", "7° Básico A"),
+            new StudentSeed("Tamara Demo", "tamara.7a@demo.dsy1105.test", "7° Básico A"),
+            new StudentSeed("Vicente Demo", "vicente.7a@demo.dsy1105.test", "7° Básico A"),
+            new StudentSeed("Ximena Demo", "ximena.8a@demo.dsy1105.test", "8° Básico A"),
+            new StudentSeed("Yago Demo", "yago.8a@demo.dsy1105.test", "8° Básico A"),
+            new StudentSeed("Zoe Demo", "zoe.8a@demo.dsy1105.test", "8° Básico A"),
+            new StudentSeed("Andrés Demo", "andres.8a@demo.dsy1105.test", "8° Básico A")
+        );
+    }
+
+    private record StudentSeed(String name, String email, String course) {}
 
     private UserEntity user(String name, String email, String role, String course) {
         return users.findByEmailIgnoreCase(email).map(existing -> {

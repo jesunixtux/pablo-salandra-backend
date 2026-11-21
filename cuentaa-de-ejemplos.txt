@@ -1,0 +1,41 @@
+CUENTAS FICTICIAS DEL PERFIL dev
+Contraseña común predeterminada: DemoDSY1105!
+
+Estas cuentas se crean de forma idempotente al iniciar con SPRING_PROFILES_ACTIVE=dev.
+Si se define DEMO_PASSWORD antes del primer arranque de una base nueva, todas usan ese valor en vez del predeterminado.
+
+ROL DOCENTE
+docente.matematica@demo.dsy1105.test | 5° Básico A | Matemática
+docente.lenguaje.5b@demo.dsy1105.test | 5° Básico B | Lenguaje y Comunicación
+docente.ciencias@demo.dsy1105.test | 6° Básico A | Ciencias Naturales
+docente.historia.6b@demo.dsy1105.test | 6° Básico B | Historia y Geografía
+docente.ingles.7a@demo.dsy1105.test | 7° Básico A | Inglés
+docente.lenguaje.8a@demo.dsy1105.test | 8° Básico A | Lenguaje y Comunicación
+
+ROL ESTUDIANTE
+alba.5a@demo.dsy1105.test | 5° Básico A
+benjamin.5a@demo.dsy1105.test | 5° Básico A
+elena.5a@demo.dsy1105.test | 5° Básico A
+felipe.5a@demo.dsy1105.test | 5° Básico A
+gabriela.5b@demo.dsy1105.test | 5° Básico B
+hugo.5b@demo.dsy1105.test | 5° Básico B
+ines.5b@demo.dsy1105.test | 5° Básico B
+joaquin.5b@demo.dsy1105.test | 5° Básico B
+camila.6a@demo.dsy1105.test | 6° Básico A
+diego.6a@demo.dsy1105.test | 6° Básico A
+karla.6a@demo.dsy1105.test | 6° Básico A
+lucas.6a@demo.dsy1105.test | 6° Básico A
+maria.6b@demo.dsy1105.test | 6° Básico B
+nicolas.6b@demo.dsy1105.test | 6° Básico B
+olivia.6b@demo.dsy1105.test | 6° Básico B
+pedro.6b@demo.dsy1105.test | 6° Básico B
+renata.7a@demo.dsy1105.test | 7° Básico A
+sebastian.7a@demo.dsy1105.test | 7° Básico A
+tamara.7a@demo.dsy1105.test | 7° Básico A
+vicente.7a@demo.dsy1105.test | 7° Básico A
+ximena.8a@demo.dsy1105.test | 8° Básico A
+yago.8a@demo.dsy1105.test | 8° Básico A
+zoe.8a@demo.dsy1105.test | 8° Básico A
+andres.8a@demo.dsy1105.test | 8° Básico A
+
+No usar estas credenciales fuera del perfil local de desarrollo.

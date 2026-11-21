@@ -29,7 +29,7 @@ Variables opcionales del perfil:
 | --- | --- |
 | `DEV_DB_URL` | URL de una base MySQL de desarrollo independiente |
 | `DEV_DB_USER` / `DEV_DB_PASSWORD` | Credenciales de esa base de desarrollo |
-| `DEMO_PASSWORD` | Contraseña común de las seis cuentas ficticias |
+| `DEMO_PASSWORD` | Contraseña común de las 30 cuentas ficticias |
 | `DEMO_EVIDENCE_DIR` | Directorio aislado para los dos archivos demo |
 
 La contraseña predeterminada es `DemoDSY1105!` y sirve exclusivamente para esta demostración local. Para definir otra sin guardarla en Git:
@@ -41,6 +41,8 @@ DEMO_PASSWORD='OtraClaveSoloDePrueba!' SPRING_PROFILES_ACTIVE=dev ./gradlew boot
 Si las cuentas ya existen, el cargador no cambia sus hashes. Usa la misma `DEMO_PASSWORD` con la que se crearon o inicia una base de desarrollo nueva.
 
 ## Cuentas y datos esperados
+
+El perfil crea 30 cuentas (6 docentes y 24 estudiantes, cuatro por curso). La lista completa de correos, roles, cursos y la contraseña exclusivamente local está en `cuentaa-de-ejemplos.txt`.
 
 Todos los correos usan el dominio reservado `.test` y no pertenecen a personas reales.
 
@@ -168,5 +170,5 @@ Primero crea `bitacora_dsy1105_dev_2` con el mismo comando `CREATE DATABASE IF N
 
 - La API usa HTTP local; no transmitas estos tokens fuera de `127.0.0.1` o una red de desarrollo controlada.
 - Las fechas demo corresponden a octubre y noviembre de 2026 para probar la validación mensual.
-- La prueba automatizada verifica una segunda ejecución del cargador con los mismos IDs. También se verificó un segundo arranque real de Spring Boot sobre MySQL, conservando 6 usuarios, 2 asignaciones, 3 bitácoras, 3 registros y 3 evidencias.
+- La prueba automatizada verifica una segunda ejecución del cargador con los mismos IDs. El resultado esperado tras reiniciar es conservar 30 usuarios, 6 asignaciones, 3 bitácoras, 3 registros y 3 evidencias.
 - El backend no incorpora un endpoint para borrar la demo. La restauración segura consiste en usar otra base de pruebas, sin operaciones destructivas.

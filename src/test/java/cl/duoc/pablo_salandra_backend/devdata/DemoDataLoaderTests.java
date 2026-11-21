@@ -57,7 +57,7 @@ class DemoDataLoaderTests {
         Set<Long> userIds = demoUsers.stream().map(UserEntity::getId).collect(java.util.stream.Collectors.toSet());
         Set<Long> entryIds = demoEntries.stream().map(entry -> entry.getId()).collect(java.util.stream.Collectors.toSet());
 
-        assertEquals(6, demoUsers.size());
+        assertEquals(30, demoUsers.size());
         assertEquals(3, demoNotebooks.size());
         assertEquals(3, demoEntries.size());
         assertEquals(Set.of("PHOTO", "FILE", "LINK"),
