@@ -4,6 +4,7 @@ import cl.duoc.pablo_salandra_backend.auth.TeacherAssignmentEntity;
 import cl.duoc.pablo_salandra_backend.auth.TeacherAssignmentRepository;
 import cl.duoc.pablo_salandra_backend.auth.UserEntity;
 import cl.duoc.pablo_salandra_backend.auth.UserRepository;
+import cl.duoc.pablo_salandra_backend.devdata.DemoDataLoader;
 import cl.duoc.pablo_salandra_backend.studententry.StudentEntryEntity;
 import cl.duoc.pablo_salandra_backend.studententry.StudentEntryRepository;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
@@ -42,9 +44,11 @@ class PabloSalandraBackendApplicationTests {
     @Autowired TeacherAssignmentRepository assignments;
     @Autowired StudentEntryRepository studentEntries;
     @Autowired PasswordEncoder passwords;
+    @Autowired ApplicationContext context;
 
     @Test
     void authenticationAndAuthorization() throws Exception {
+        assertTrue(context.getBeansOfType(DemoDataLoader.class).isEmpty());
         assertEquals(401, mvc.perform(get("/api/notebooks")).andReturn().getResponse().getStatus());
         String suffix = UUID.randomUUID().toString().substring(0, 8);
         String teacherEmail = "teacher-" + suffix + "@example.test";

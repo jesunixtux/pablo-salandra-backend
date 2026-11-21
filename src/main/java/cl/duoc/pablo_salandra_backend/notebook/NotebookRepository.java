@@ -11,6 +11,8 @@ public interface NotebookRepository extends JpaRepository<NotebookEntity, Long> 
     java.util.List<NotebookEntity> findAllByOrderByCreatedAtDesc();
     boolean existsByTeacherIdAndCourseAndSubjectAndMonthAndYear(Long teacherId,
         String course, String subject, int month, int year);
+    Optional<NotebookEntity> findByTeacherIdAndCourseAndSubjectAndMonthAndYear(Long teacherId,
+        String course, String subject, int month, int year);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from NotebookEntity n where n.id = :id")
     Optional<NotebookEntity> findLockedById(@Param("id") Long id);
