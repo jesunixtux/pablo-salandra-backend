@@ -29,9 +29,13 @@ SPRING_PROFILES_ACTIVE=dev,standalone ./gradlew bootRun
 ```
 
 En Windows existen `Iniciar-XAMPP.bat`, `Iniciar-MySQL.bat` e `Iniciar-Standalone.bat`
-(doble clic, comprueban Java y el puerto, e inician con `dev` más el perfil del motor);
-ver [README-INSTALACION-WINDOWS-XAMPP.md](README-INSTALACION-WINDOWS-XAMPP.md). El modo
-`standalone` es exclusivamente para demostraciones académicas y desarrollo local.
+(doble clic, comprueban Java y el puerto, ofrecen iniciar el módulo MySQL de XAMPP si
+está parado, e inician con `dev` más el perfil del motor);
+ver [README-INSTALACION-WINDOWS-XAMPP.md](README-INSTALACION-WINDOWS-XAMPP.md). En
+`mysql` y `xampp`, si la base configurada no existe se crea automáticamente con
+`utf8mb4_general_ci` antes de migrar (el usuario necesita privilegio CREATE); en H2 no
+hay servidor que configurar. El modo `standalone` es exclusivamente para
+demostraciones académicas y desarrollo local.
 
 Variables opcionales: `DB_URL` (URL completa), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SERVER_PORT`, `SERVER_ADDRESS` y `EVIDENCE_DIR`. Por defecto, `DB_USER=root` y `DB_PASSWORD` vacío se usan únicamente para estas bases locales de pruebas. Para otro entorno usa un usuario de aplicación y contraseña propia. Los archivos se guardan fuera del repositorio en `${user.home}/.local/share/pablo-salandra-backend/evidences`, salvo que configures `EVIDENCE_DIR`.
 

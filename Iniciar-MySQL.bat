@@ -34,7 +34,8 @@ if errorlevel 1 (
 )
 echo Puerto %DB_PORT% ocupado: si es XAMPP, usa Iniciar-XAMPP.bat (conector MariaDB).
 
-echo MySQL en %DB_HOST%:%DB_PORT%, base "%DB_NAME%". Flyway crea las tablas si falta.
+echo MySQL en %DB_HOST%:%DB_PORT%, base "%DB_NAME%".
+echo El backend crea la base y sus tablas automaticamente si faltan.
 echo API REST en http://127.0.0.1:8090 con las 30 cuentas ficticias del perfil dev.
 
 set "SPRING_PROFILES_ACTIVE=dev,mysql"

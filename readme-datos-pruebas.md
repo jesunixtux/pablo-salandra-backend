@@ -8,13 +8,13 @@ Este entorno carga datos únicamente cuando Spring Boot se inicia con el perfil 
 
 - JDK 21 y el Gradle Wrapper del proyecto.
 - MySQL local iniciado con `./MYSQL-Local/start-mysql.sh` (o XAMPP con MariaDB, o nada en modo `standalone`).
-- Una base vacía o ya cargada exclusivamente para desarrollo.
+- Nada más: si la base de desarrollo no existe, el backend la crea automáticamente al arrancar con `utf8mb4_general_ci`, Flyway crea las tablas y este perfil carga las cuentas.
 
-Crear la base de desarrollo sin tocar `bitacora`:
+Opcionalmente, para revisar la base creada:
 
 ```bash
 ./MYSQL-Local/runtime/mysql/bin/mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root \
-  -e 'CREATE DATABASE IF NOT EXISTS bitacora_dsy1105_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+  -e 'SHOW DATABASES'
 ```
 
 Iniciar Spring Boot y cargar los datos:

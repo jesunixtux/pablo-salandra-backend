@@ -12,27 +12,33 @@ escucha siempre en `http://127.0.0.1:8090`.
 
 ## Opción rápida: doble clic
 
-Ejecuta `Iniciar-XAMPP.bat` desde la raíz del repositorio. El script comprueba Java,
-que el puerto 3306 esté escuchando (si XAMPP lo usa, **no** inicia un segundo MySQL)
-y arranca Spring Boot con los perfiles `dev,xampp`: 30 cuentas ficticias incluidas.
-Si algo falla, muestra el error y queda en pantalla.
+Ejecuta `Iniciar-XAMPP.bat` desde la raíz del repositorio. El script comprueba Java
+y el puerto 3306; si el módulo MySQL de XAMPP está parado, ofrece iniciarlo con el
+propio `mysqld` de XAMPP (nunca arranca una segunda instancia si el puerto ya está
+ocupado). Luego arranca Spring Boot con los perfiles `dev,xampp`. **No hay que crear
+la base, las tablas ni las cuentas a mano**: el backend crea la base configurada con
+cotejamiento `utf8mb4_general_ci` (compatible con MySQL y MariaDB), Flyway migrará y
+el perfil `dev` cargará las 30 cuentas ficticias. Si falta Java, el Gradle Wrapper o
+los permisos, el script muestra el error y queda en pantalla.
 
 ## Pasos manuales
 
-### 1. Iniciar XAMPP
+### 1. Iniciar XAMPP (opcional)
 
 1. Abre el **Panel de Control de XAMPP**.
-2. En la fila **MySQL (MariaDB)** pulsa **Start**. Debe quedar en verde y escuchar
-   en el puerto **3306** (o el que configures).
+2. En la fila **MySQL (MariaDB)** pulsa **Start**, o deja que `Iniciar-XAMPP.bat` lo
+   haga. Debe quedar escuchando en el puerto **3306** (o el que configures).
 3. Si el puerto está ocupado por otro MySQL, cambia el puerto de MariaDB en
    `my.ini` o usa el tuyo propio con `DB_PORT`.
 
-### 2. Crear la base de datos
+### 2. La base de datos
 
-1. Entra a `http://localhost/phpmyadmin`.
-2. Pestaña **Bases de datos**: crea `bitacora_dsy1105_dev` con cotejamiento
-   `utf8mb4_general_ci` (el predeterminado de XAMPP sirve).
-3. **No** crees tablas: Flyway las crea/actualiza solo al arrancar el backend.
+No se crea a mano ni hace falta phpMyAdmin: al arrancar, el backend comprueba en el
+servidor si existe `DB_NAME` (`bitacora_dsy1105_dev` en los scripts) y, si falta,
+ejecuta `CREATE DATABASE ... CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci`
+conectando sin seleccionar base. Flyway crea o amplía las tablas después. Nunca
+borra ni modifica bases existentes; si la base ya tiene datos, las migraciones solo
+se aplican hacia delante.
 
 Para una base compartida sin datos ficticios, usa el nombre `bitacora` y omite el
 perfil `dev`.
@@ -60,10 +66,11 @@ set SPRING_PROFILES_ACTIVE=dev,xampp
 gradlew.bat bootRun
 ```
 
-Primer arranque exitoso: Flyway aplica las migraciones V1/V2, Hibernate valida el
-esquema y se cargan las 30 cuentas ficticias (`cuentaa-de-ejemplos.txt`, contraseña
-común `DemoDSY1105!`). Los reinicios siguientes no duplican ni sobrescriben datos,
-aunque hayas modificado, enviado, revisado o cerrado los registros de demo.
+Primer arranque exitoso: se crea la base si falta (utf8mb4 / utf8mb4_general_ci),
+Flyway aplica las migraciones V1/V2, Hibernate valida el esquema y se cargan las
+30 cuentas ficticias (`cuentaa-de-ejemplos.txt`, contraseña común `DemoDSY1105!`).
+Los reinicios siguientes no duplican ni sobrescriben datos, aunque hayas modificado,
+enviado, revisado o cerrado los registros de demo.
 
 ## Sin XAMPP ni MySQL: modo independiente
 
@@ -89,7 +96,7 @@ misma URL (`10.0.2.2:8090` en el emulador).
 
 | Mensaje | Causa / arreglo |
 | --- | --- |
+| `No se pudo comprobar ni crear la base ...` | El usuario no tiene privilegios CREATE o faltan credenciales: revisa `DB_USER` / `DB_PASSWORD` (o crea la base a mano). |
 | `Access denied for user 'root'` | Credenciales distintas: ajusta `DB_USER` / `DB_PASSWORD`. |
-| `Unknown database 'bitacora_dsy1105_dev'` | Falta crear la base en phpMyAdmin (paso 2). |
 | `Communications link failure` | MariaDB detenido o puerto incorrecto: revisa el panel de XAMPP y `DB_PORT`. |
 | Puerto 3306 ocupado por otro servicio | Usa ese servidor con `Iniciar-MySQL.bat` (si es MySQL) o configura el puerto de XAMPP y `DB_PORT`. |
