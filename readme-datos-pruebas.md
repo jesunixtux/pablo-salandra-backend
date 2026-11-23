@@ -2,10 +2,12 @@
 
 Este entorno carga datos únicamente cuando Spring Boot se inicia con el perfil explícito `dev`. El perfil normal no contiene el cargador y continúa usando la base `bitacora`. El perfil `dev` usa por defecto la base independiente `bitacora_dsy1105_dev` y la carpeta privada `${user.home}/.local/share/pablo-salandra-backend/demo-evidences`.
 
+`dev` se combina con cualquiera de los tres perfiles de motor, poniendo el motor al final: `dev,mysql`, `dev,xampp` (MariaDB de XAMPP) o `dev,standalone` (H2 en archivo `./data/bitacora`, sin servidor). En Windows hay scripts `Iniciar-MySQL.bat`, `Iniciar-XAMPP.bat` e `Iniciar-Standalone.bat` que ya usan esa combinación; ver [README-INSTALACION-WINDOWS-XAMPP.md](README-INSTALACION-WINDOWS-XAMPP.md).
+
 ## Requisitos e inicio
 
 - JDK 21 y el Gradle Wrapper del proyecto.
-- MySQL local iniciado con `./MYSQL-Local/start-mysql.sh`.
+- MySQL local iniciado con `./MYSQL-Local/start-mysql.sh` (o XAMPP con MariaDB, o nada en modo `standalone`).
 - Una base vacía o ya cargada exclusivamente para desarrollo.
 
 Crear la base de desarrollo sin tocar `bitacora`:
@@ -21,7 +23,7 @@ Iniciar Spring Boot y cargar los datos:
 SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
 ```
 
-El cargador se ejecuta al arrancar. Volver a iniciar el backend no duplica cuentas, asignaciones, bitácoras, registros ni evidencias. Tampoco modifica una fila ya existente: si un correo o periodo reservado para la demo contiene datos incompatibles, el arranque falla con un mensaje de conflicto.
+El cargador se ejecuta al arrancar. Volver a iniciar el backend no duplica cuentas, asignaciones, bitácoras, registros ni evidencias. Tampoco modifica una fila ya existente: si la demo fue enviada, revisada, renombrada o cerrada por los usuarios, el reinicio la respeta y arranca igual. Solo falla si un correo de la demo pertenece a una cuenta real de otro rol o curso, caso en el que muestra un mensaje de conflicto.
 
 Variables opcionales del perfil:
 

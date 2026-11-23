@@ -5,6 +5,7 @@ import cl.duoc.pablo_salandra_backend.auth.UserRepository;
 import cl.duoc.pablo_salandra_backend.evidence.EvidenceRepository;
 import cl.duoc.pablo_salandra_backend.notebook.NotebookEntity;
 import cl.duoc.pablo_salandra_backend.notebook.NotebookRepository;
+import cl.duoc.pablo_salandra_backend.studententry.StudentEntryEntity;
 import cl.duoc.pablo_salandra_backend.studententry.StudentEntryRepository;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -75,6 +76,30 @@ class DemoDataLoaderTests {
             .collect(java.util.stream.Collectors.toSet()));
         assertEquals(entryIds, entries.findAll().stream().filter(entry -> notebookIds.contains(entry.getNotebookId()))
             .map(entry -> entry.getId()).collect(java.util.stream.Collectors.toSet()));
+    }
+
+    @Test
+    @Transactional
+    void restartAfterDemoRecordsWereUsedKeepsExistingRows() {
+        UserEntity teacher = users.findByEmailIgnoreCase(DemoDataLoader.TEACHER_MATH).orElseThrow();
+        NotebookEntity mathOpen = notebooks.findByTeacherIdAndCourseAndSubjectAndMonthAndYear(
+            teacher.getId(), "5° Básico A", "Matemática", 11, 2026).orElseThrow();
+        UserEntity alba = users.findByEmailIgnoreCase(DemoDataLoader.STUDENT_ALBA).orElseThrow();
+        StudentEntryEntity draft = entries.findByNotebookId(mathOpen.getId()).stream()
+            .filter(entry -> alba.getId().equals(entry.getStudentId())).findFirst().orElseThrow();
+
+        // La usuaria dejó la demo avanzada: envió su borrador y la docente cerró la bitácora.
+        draft.submit();
+        entries.save(draft);
+        mathOpen.close();
+        notebooks.save(mathOpen);
+
+        loader.run(null);
+
+        assertEquals(30, demoUsers().size());
+        assertEquals(3, demoNotebooks(demoUsers()).size());
+        assertTrue(notebooks.findById(mathOpen.getId()).orElseThrow().isClosed());
+        assertFalse(entries.findById(draft.getId()).orElseThrow().isDraft());
     }
 
     @Test

@@ -17,7 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -158,13 +157,10 @@ public class DemoDataLoader implements ApplicationRunner {
 
     private NotebookEntity notebook(UserEntity teacher, String title, String course, String subject,
             int month, int year, String studentEmails, boolean closed) {
+        // Una fila existente se respeta tal cual: la docente pudo renombrar, cerrar o archivar la bitácora demo.
         return notebooks.findByTeacherIdAndCourseAndSubjectAndMonthAndYear(
                 teacher.getId(), course, subject, month, year)
-            .map(existing -> {
-                if (!title.equals(existing.getTitle()) || existing.getPublishedAt() == null || existing.isClosed() != closed)
-                    throw conflict("bitácora", title);
-                return existing;
-            }).orElseGet(() -> {
+            .orElseGet(() -> {
                 NotebookEntity created = new NotebookEntity(title, "Demostrar aprendizajes del mes",
                     "Registra la actividad, lo aprendido y tus dudas", "¿Qué aprendiste y qué necesitas reforzar?",
                     teacher.getEmail(), teacher.getName(), System.currentTimeMillis(), course, studentEmails);
@@ -184,18 +180,10 @@ public class DemoDataLoader implements ApplicationRunner {
 
     private StudentEntryEntity entry(NotebookEntity notebook, UserEntity student, String date,
             String state, UserEntity teacher) {
+        // El estudiante pudo enviar, revisar o cambiar la fecha del registro demo: se conserva la fila existente.
         return entries.findByNotebookId(notebook.getId()).stream()
-            .filter(existing -> Objects.equals(existing.getStudentId(), student.getId()) && date.equals(existing.getClassDate()))
-            .findFirst().map(existing -> {
-                boolean valid = switch (state) {
-                    case "DRAFT" -> existing.isDraft() && !existing.isReviewed();
-                    case "SUBMITTED" -> !existing.isDraft() && !existing.isReviewed();
-                    case "REVIEWED" -> !existing.isDraft() && existing.isReviewed();
-                    default -> false;
-                };
-                if (!valid) throw conflict("registro", student.getEmail() + " " + date);
-                return existing;
-            }).orElseGet(() -> {
+            .filter(existing -> Objects.equals(existing.getStudentId(), student.getId()))
+            .findFirst().orElseGet(() -> {
                 StudentEntryEntity created = new StudentEntryEntity(notebook.getId(), notebook.getTitle(),
                     teacher.getEmail(), student.getEmail(), student.getName(), date,
                     "Contenido ficticio de la clase", "Actividad ficticia del curso",
@@ -213,8 +201,8 @@ public class DemoDataLoader implements ApplicationRunner {
         EvidenceEntity existing = evidences.findByEntryId(entry.getId()).stream()
             .filter(evidence -> kind.equals(evidence.getKind())).findFirst().orElse(null);
         if (existing != null) {
-            if (!storageKey.equals(existing.getStorageKey())) throw conflict("evidencia", kind);
-            ensureFile(storageKey, bytes);
+            // Si la evidencia sigue apuntando al archivo demo, solo se asegura su presencia en disco.
+            if (storageKey.equals(existing.getStorageKey())) ensureFile(storageKey, bytes);
             return;
         }
         ensureFile(storageKey, bytes);
@@ -225,10 +213,7 @@ public class DemoDataLoader implements ApplicationRunner {
     private void linkEvidence(StudentEntryEntity entry, UserEntity owner, String url) {
         EvidenceEntity existing = evidences.findByEntryId(entry.getId()).stream()
             .filter(evidence -> "LINK".equals(evidence.getKind())).findFirst().orElse(null);
-        if (existing != null) {
-            if (!url.equals(existing.getUrl())) throw conflict("evidencia", "LINK");
-            return;
-        }
+        if (existing != null) return;
         evidences.save(new EvidenceEntity(entry.getId(), owner.getId(), "LINK", null, null, null, null, url));
     }
 
@@ -237,11 +222,8 @@ public class DemoDataLoader implements ApplicationRunner {
         if (!file.startsWith(evidenceDirectory)) throw new IllegalStateException("Invalid demo evidence path");
         try {
             Files.createDirectories(evidenceDirectory);
-            if (Files.exists(file)) {
-                if (!Arrays.equals(bytes, Files.readAllBytes(file))) throw conflict("archivo", storageKey);
-            } else {
-                Files.write(file, bytes, StandardOpenOption.CREATE_NEW);
-            }
+            // Un archivo existente es del usuario: no se compara ni se sobrescribe.
+            if (!Files.exists(file)) Files.write(file, bytes, StandardOpenOption.CREATE_NEW);
         } catch (IOException e) {
             throw new IllegalStateException("Could not prepare demo evidence " + storageKey, e);
         }

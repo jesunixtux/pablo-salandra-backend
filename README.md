@@ -1,6 +1,6 @@
 # Bitácora DSY1105 — backend
 
-API Spring Boot 4.1.2, Java 21 y MySQL para bitácoras mensuales de 5° a 8° Básico. La API escucha en `127.0.0.1:8090` y usa la base `bitacora` en `127.0.0.1:3306` de forma predeterminada. La aplicación Android aún usa autenticación y almacenamiento locales; su sincronización remota está desactivada.
+API Spring Boot 4.1.2, Java 21 y base de datos compatible (MySQL, MariaDB de XAMPP o H2 en modo independiente) para bitácoras mensuales de 5° a 8° Básico. La API escucha en `127.0.0.1:8090` y usa la base `bitacora` en `127.0.0.1:3306` de forma predeterminada. La aplicación Android aún usa autenticación y almacenamiento locales; su sincronización remota está desactivada.
 
 ## Iniciar
 
@@ -11,7 +11,29 @@ API Spring Boot 4.1.2, Java 21 y MySQL para bitácoras mensuales de 5° a 8° B�
 
 Flyway crea o amplía el esquema al arrancar. `spring.jpa.hibernate.ddl-auto=validate` comprueba las entidades. Antes de actualizar una base existente, haz un respaldo. Las migraciones se describen en [BACKEND-MIGRACION-DSY1105.md](BACKEND-MIGRACION-DSY1105.md).
 
-Variables opcionales: `DB_URL`, `DB_USER`, `DB_PASSWORD`, `SERVER_PORT`, `SERVER_ADDRESS` y `EVIDENCE_DIR`. Por defecto, `DB_USER=root` y `DB_PASSWORD` vacío se usan únicamente para este MySQL local de pruebas. Para otro entorno usa un usuario de aplicación y contraseña propia. Los archivos se guardan fuera del repositorio en `${user.home}/.local/share/pablo-salandra-backend/evidences`, salvo que configures `EVIDENCE_DIR`.
+### Perfiles de base de datos
+
+El motor se elige con un perfil, sin tocar el código ni la app Android. No hay cambio
+automático de motor si una conexión falla: se usa siempre el perfil indicado.
+
+| Perfil | Motor | URL predeterminada |
+| --- | --- | --- |
+| `mysql` | MySQL tradicional | `jdbc:mysql://127.0.0.1:3306/bitacora` |
+| `xampp` | MariaDB de XAMPP (conector `jdbc:mariadb:`) | `jdbc:mariadb://127.0.0.1:3306/bitacora` |
+| `standalone` | H2 en archivo (`./data/bitacora.mv.db`), sin servidor | sin configuración |
+| `dev` | Solo datos: 30 cuentas ficticias; se combina con los tres anteriores | respeta el perfil del motor |
+
+```bash
+SPRING_PROFILES_ACTIVE=dev,xampp DB_NAME=bitacora_dsy1105_dev ./gradlew bootRun
+SPRING_PROFILES_ACTIVE=dev,standalone ./gradlew bootRun
+```
+
+En Windows existen `Iniciar-XAMPP.bat`, `Iniciar-MySQL.bat` e `Iniciar-Standalone.bat`
+(doble clic, comprueban Java y el puerto, e inician con `dev` más el perfil del motor);
+ver [README-INSTALACION-WINDOWS-XAMPP.md](README-INSTALACION-WINDOWS-XAMPP.md). El modo
+`standalone` es exclusivamente para demostraciones académicas y desarrollo local.
+
+Variables opcionales: `DB_URL` (URL completa), `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SERVER_PORT`, `SERVER_ADDRESS` y `EVIDENCE_DIR`. Por defecto, `DB_USER=root` y `DB_PASSWORD` vacío se usan únicamente para estas bases locales de pruebas. Para otro entorno usa un usuario de aplicación y contraseña propia. Los archivos se guardan fuera del repositorio en `${user.home}/.local/share/pablo-salandra-backend/evidences`, salvo que configures `EVIDENCE_DIR`.
 
 El registro público crea solo estudiantes. Para cargar un docente ficticio con asignación de curso y asignatura, configura antes del arranque `BOOTSTRAP_TEACHER_EMAIL`, `BOOTSTRAP_TEACHER_PASSWORD`, `BOOTSTRAP_TEACHER_NAME`, `BOOTSTRAP_TEACHER_COURSE` y `BOOTSTRAP_TEACHER_SUBJECT`. La contraseña debe tener al menos 8 caracteres y se guarda con BCrypt; si la cuenta ya existe, el arranque solo agrega la asignación y no cambia su contraseña. No pongas estas variables en archivos versionados.
 
